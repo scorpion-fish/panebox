@@ -109,6 +109,21 @@ def t(key: str) -> str:
     return key
 
 
+def default_desktop_names() -> tuple[str, ...]:
+    """Localized default-desktop widget names across every supported culture.
+
+    Used to recognize a default folder minted under another UI language
+    (我的桌面 / My Desktop / …) so initial setup can reuse it instead of
+    creating a deduped sibling.
+    """
+    names: list[str] = []
+    for culture in SUPPORTED_LANGUAGES:
+        value = _load(culture).get("Widget.DefaultDesktopName")
+        if value and value not in names:
+            names.append(value)
+    return tuple(names)
+
+
 def fmt(key: str, *args, **kwargs) -> str:
     text = t(key)
     try:

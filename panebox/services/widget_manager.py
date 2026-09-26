@@ -367,7 +367,10 @@ class WidgetManager(WidgetManagerGroupsMixin):
                 width=self.settings.settings.widgetShell.defaultWidgetWidth,
                 height=self.settings.settings.widgetShell.defaultWidgetHeight,
             )
-            x, y = self._next_cascade_position()
+            if place_for_first_run:
+                x, y = self._initial_placement(config)
+            else:
+                x, y = self._next_cascade_position()
         else:
             name = name or t("Widget.DefaultName")
             folder_name = self.create_managed_folder_name(name)
@@ -415,6 +418,29 @@ class WidgetManager(WidgetManagerGroupsMixin):
         self.capture_geometries()
         self._notify_widgets_changed()
         return config
+
+    def _existing_default_folder(self) -> Optional[str]:
+        """Reuse a default desktop folder minted by an earlier run.
+
+        The initial setup re-arms after the user closes every widget; without
+        this the next boot would mint a deduped sibling ("我的桌面 (2)",
+        "My Desktop (2)") instead of adopting the folder already on disk —
+        which may carry another UI language's name.
+        """
+        from ..i18n import default_desktop_names
+
+        root = self.storage_root()
+        if not os.path.isdir(root):
+            return None
+        names = set(default_desktop_names()) | {t("Widget.DefaultDesktopName")}
+        candidates = [
+            os.path.join(root, entry)
+            for entry in os.listdir(root)
+            if entry in names and os.path.isdir(os.path.join(root, entry))
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=os.path.getmtime)
 
     def _initial_placement(self, config: WidgetConfig) -> tuple[float, float]:
         """Right-aligned placement (InitialFileWidgetPlacementPolicy)."""
@@ -989,7 +1015,11 @@ class WidgetManager(WidgetManagerGroupsMixin):
             return None
         core.hasResolvedInitialFileWidgetSetup = True
         try:
-            return self.create_file_widget(name=t("Widget.DefaultDesktopName"), place_for_first_run=True)
+            return self.create_file_widget(
+                name=t("Widget.DefaultDesktopName"),
+                mapped_folder=self._existing_default_folder(),
+                place_for_first_run=True,
+            )
         except Exception:
             if not has_file_widget:
                 core.hasResolvedInitialFileWidgetSetup = False
