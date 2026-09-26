@@ -350,6 +350,12 @@ class WidgetManager(WidgetManagerGroupsMixin):
             if os.path.realpath(folder) == os.path.realpath(self.storage_root()):
                 raise FileWidgetPathConflict("StorageRoot")
             for rt in self.runtimes.values():
+                # Feature widgets (Todo / QuickCapture / …) have no controller
+                # folder; the scan must skip them — dereferencing it crashed the
+                # whole mapping with "NoneType has no attribute folder_path" and
+                # the chooser silently did nothing.
+                if rt.controller is None:
+                    continue
                 if os.path.realpath(rt.controller.folder_path) == os.path.realpath(folder):
                     raise FileWidgetPathConflict("ExistingWidget", rt.config)
             config = WidgetConfig(
