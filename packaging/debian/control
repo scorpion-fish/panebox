@@ -1,0 +1,13 @@
+Package: panebox
+Version: PLACEHOLDER_VERSION
+Section: utils
+Priority: optional
+Architecture: all
+Maintainer: PaneBox Linux port <panebox@localhost>
+Depends: python3 (>= 3.10), python3-gi, python3-gi-cairo, gir1.2-gtk-4.0, python3-pil, python3-requests, python3-watchdog, python3-dateutil
+Recommends: gir1.2-notify-0.7, pulseaudio-utils, xdg-utils
+Description: Floating desktop organizer widgets (Linux port of DeskBox)
+ PaneBox pins real-folder-backed file widgets to the desktop layer, plus
+ Todo, Quick Capture, Glance (clock/lunar), Weather, Music and Search
+ feature widgets — tray control, hotkeys, per-monitor layout memory and
+ 12-language localization.

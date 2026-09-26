@@ -1,0 +1,3 @@
+#!/bin/sh
+# /usr/bin/panebox — launcher installed by the deb/snap packages.
+exec /usr/bin/python3 /usr/lib/panebox/main.py "$@"

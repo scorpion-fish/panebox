@@ -1,0 +1,11 @@
+#!/bin/sh
+# AppImage entry point. The payload is interpreted (Python + system GTK), so
+# the host needs python3-gi and gir1.2-gtk-4.0 — documented in the AppImage
+# README and checked here with a readable failure.
+set -e
+HERE="$(dirname "$(readlink -f "$0")")"
+if ! python3 -c 'import gi' 2>/dev/null; then
+    echo "PaneBox: PyGObject is required. Install: sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-4.0" >&2
+    exit 1
+fi
+exec /usr/bin/python3 "$HERE/usr/lib/panebox/main.py" "$@"

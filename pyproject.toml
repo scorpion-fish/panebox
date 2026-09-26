@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+exclude = ["build", "dist", "strings"]
+
+[tool.ruff.lint]
+# pycodestyle + pyflakes; import sorting deliberately NOT enabled —
+# `gi.require_version()` calls must precede their matching gi imports, so
+# E402 (module-import-not-at-top) is inherent to every GTK module here.
+select = ["E", "F", "W"]
+ignore = ["E402"]
+
+[tool.ruff.format]
+quote-style = "double"

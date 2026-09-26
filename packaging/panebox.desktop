@@ -1,0 +1,22 @@
+[Desktop Entry]
+Type=Application
+Name=PaneBox
+GenericName=Desktop Organizer
+Comment=Floating file and feature widgets pinned to the desktop
+Comment[zh_CN]=桌面整理工具 — 浮层文件与功能小组件
+Exec=panebox
+Icon=panebox
+Terminal=false
+Categories=Utility;FileTools;DesktopSettings;
+StartupWMClass=panebox
+Actions=settings;toggle;
+
+[Desktop Action settings]
+Name=Settings
+Name[zh_CN]=设置
+Exec=panebox --settings
+
+[Desktop Action toggle]
+Name=Toggle Widgets
+Name[zh_CN]=显示/隐藏小组件
+Exec=panebox --toggle

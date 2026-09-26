@@ -1,0 +1,16 @@
+name: panebox
+version: PLACEHOLDER_VERSION
+summary: Floating desktop organizer widgets
+description: |
+  PaneBox pins real-folder-backed file widgets to the desktop layer, plus
+  Todo, Quick Capture, Glance (clock/lunar), Weather, Music and Search
+  feature widgets — tray control, hotkeys, per-monitor layout memory and
+  12-language localization. Linux port of the Windows organizer DeskBox.
+architectures:
+  - amd64
+confinement: classic
+grade: stable
+apps:
+  panebox:
+    command: usr/bin/panebox
+    desktop: meta/gui/panebox.desktop

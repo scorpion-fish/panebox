@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Package artifacts (AppImage / deb / snap / wheel)
+*.AppImage
+*.deb
+*.snap
+*.whl
+
+# Runtime / local data
+*.log
+run.log
+*-Diagnostics-*.zip
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store

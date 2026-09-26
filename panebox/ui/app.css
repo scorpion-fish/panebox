@@ -1,0 +1,782 @@
+/* DeskBox Linux — widget shell theme.
+   Colors follow the system theme via GTK tokens; opacity/material is applied
+   per-window (set_opacity) rather than in CSS so it can mirror settings. */
+
+/* ---- shell chrome ---------------------------------------------------------- */
+
+.widget-shell {
+  border-radius: 10px;
+  border: 1px solid alpha(@theme_fg_color, 0.12);
+  background-color: @theme_bg_color;
+}
+
+.widget-titlebar {
+  padding: 2px 4px 2px 8px;
+  border-radius: 10px 10px 0 0;
+}
+
+.widget-titlebar:hover {
+  background-color: alpha(@theme_fg_color, 0.04);
+}
+
+.widget-title {
+  font-weight: 600;
+  font-size: 11.5px;
+  color: @theme_fg_color;
+  opacity: 0.85;
+}
+
+.widget-title:hover { opacity: 1.0; }
+
+.widget-glyph {
+  font-size: 11px;
+  color: @theme_selected_bg_color;
+  opacity: 0.9;
+  padding-right: 2px;
+}
+
+.title-buttons button {
+  padding: 1px 4px;
+  margin: 0;
+  border-radius: 6px;
+  background: transparent;
+  min-width: 18px;
+  min-height: 18px;
+  font-size: 10px;
+}
+
+.title-buttons button:hover {
+  background-color: alpha(@theme_fg_color, 0.10);
+}
+
+.title-buttons button:active {
+  background-color: alpha(@theme_fg_color, 0.18);
+}
+
+.widget-title-entry {
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  min-height: 20px;
+  padding: 0 4px;
+}
+
+/* ---- file surface ------------------------------------------------------------ */
+
+.file-surface {
+  background-color: transparent;
+}
+
+.file-tile {
+  border-radius: 8px;
+  padding: 4px 2px 2px 2px;
+  margin: 0;
+  transition: all 120ms ease-out;
+}
+
+.file-tile:hover {
+  background-color: alpha(@theme_fg_color, 0.06);
+}
+
+.file-tile:selected {
+  background-color: alpha(@theme_selected_bg_color, 0.25);
+  border: 1px solid alpha(@theme_selected_bg_color, 0.55);
+}
+
+.file-tile-icon { opacity: 0.95; }
+
+.file-tile-label {
+  font-size: 11px;
+  color: @theme_fg_color;
+  opacity: 0.9;
+  padding: 0 2px;
+}
+
+.file-tile:selected .file-tile-label { opacity: 1.0; }
+
+.file-row {
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.file-row:hover { background-color: alpha(@theme_fg_color, 0.06); }
+
+.file-row:selected {
+  background-color: alpha(@theme_selected_bg_color, 0.25);
+}
+
+.file-row-name {
+  font-size: 11.5px;
+  color: @theme_fg_color;
+}
+
+.file-row-detail {
+  font-size: 10px;
+  color: @theme_fg_color;
+  opacity: 0.55;
+}
+
+/* ---- navigation bar ------------------------------------------------------------ */
+
+.nav-bar {
+  background-color: alpha(@theme_fg_color, 0.03);
+  border-top: 1px solid alpha(@theme_fg_color, 0.07);
+  padding: 1px 4px;
+}
+
+.nav-bar button {
+  padding: 0 5px;
+  border-radius: 6px;
+  min-height: 18px;
+  font-size: 10.5px;
+}
+
+.nav-crumb-label {
+  font-size: 10.5px;
+  opacity: 0.75;
+}
+
+/* ---- empty state ---------------------------------------------------------------- */
+
+.empty-state {
+  padding: 18px 12px;
+}
+
+.empty-state-title {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.empty-state-text {
+  font-size: 10.5px;
+  opacity: 0.5;
+}
+
+/* ---- density scales -------------------------------------------------------------- */
+
+.density-compact .file-tile-label { font-size: 10.5px; }
+.density-compact .file-row-name { font-size: 10.5px; }
+.density-relaxed .file-tile-label { font-size: 12px; }
+.density-relaxed .file-row-name { font-size: 12.5px; }
+
+/* ---- capsule (collapse) mode ------------------------------------------------------ */
+
+.capsule-bar {
+  border-radius: 999px;
+  padding: 2px 10px;
+  background-color: @theme_bg_color;
+  border: 1px solid alpha(@theme_fg_color, 0.12);
+}
+
+.capsule-bar:hover {
+  background-color: alpha(@theme_selected_bg_color, 0.12);
+}
+
+.capsule-label {
+  font-size: 10.5px;
+  opacity: 0.8;
+}
+
+/* ---- settings window --------------------------------------------------------- */
+
+.settings-root {
+  background-color: @theme_bg_color;
+}
+
+.settings-nav {
+  background-color: transparent;
+  padding: 6px 4px;
+}
+
+.settings-nav row {
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 1px 4px;
+}
+
+.settings-nav row:selected {
+  background-color: alpha(@theme_selected_bg_color, 0.25);
+  color: @theme_fg_color;
+}
+
+.settings-page {
+  padding: 18px 22px 26px 22px;
+}
+
+.settings-page-title {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.settings-page-subtitle {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+
+.settings-group-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  opacity: 0.75;
+  margin-top: 8px;
+}
+
+.settings-group {
+  background-color: alpha(@theme_fg_color, 0.035);
+  border-radius: 10px;
+  border: 1px solid alpha(@theme_fg_color, 0.07);
+}
+
+.settings-group row {
+  padding: 10px 14px;
+}
+
+.settings-group row + row {
+  border-top: 1px solid alpha(@theme_fg_color, 0.06);
+}
+
+.settings-row-title {
+  font-size: 13px;
+}
+
+.settings-row-description {
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.settings-hotkey-status {
+  font-size: 11.5px;
+  opacity: 0.7;
+}
+
+.settings-limitation-banner {
+  font-size: 11px;
+  opacity: 0.65;
+  color: @theme_selected_bg_color;
+}
+
+/* ---- Todo widget ---- */
+
+.todo-add {
+  padding: 6px 8px 2px 8px;
+}
+
+.todo-tabs {
+  padding: 4px 8px 2px 8px;
+}
+
+.todo-tabs button {
+  font-size: 11.5px;
+  padding: 2px 9px;
+}
+
+.todo-row {
+  border-radius: 6px;
+}
+
+.todo-row-text {
+  font-size: 12.5px;
+}
+
+.todo-done {
+  opacity: 0.45;
+  text-decoration-line: line-through;
+}
+
+.todo-due {
+  font-size: 10.5px;
+  opacity: 0.65;
+}
+
+.todo-overdue {
+  opacity: 1.0;
+  color: #E34D4D;
+}
+
+.todo-recurrence-glyph {
+  font-size: 10.5px;
+  opacity: 0.6;
+}
+
+.todo-color-dot {
+  font-size: 10px;
+}
+
+#todo-dot-red { color: #E34D4D; }
+#todo-dot-orange { color: #F08A3C; }
+#todo-dot-yellow { color: #F2C94C; }
+#todo-dot-green { color: #4CAF6D; }
+#todo-dot-blue { color: #4D8FE3; }
+#todo-dot-purple { color: #9B6BE8; }
+#todo-dot-teal { color: #2DB7A3; }
+#todo-dot-pink { color: #E66AA2; }
+
+.todo-star {
+  padding: 0 4px;
+  font-size: 13px;
+}
+
+.todo-empty {
+  font-size: 12px;
+  opacity: 0.5;
+  margin: 24px 12px;
+}
+
+.todo-footer {
+  padding: 4px 10px 6px 10px;
+  font-size: 11px;
+}
+
+.todo-back {
+  margin: 4px 8px 0 8px;
+}
+
+.todo-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.65;
+  margin-top: 6px;
+}
+
+.todo-detail-title entry,
+.todo-detail-title {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* ---- Feature placeholder ---- */
+
+.feature-placeholder-glyph {
+  font-size: 34px;
+  opacity: 0.30;
+}
+
+.feature-placeholder-title {
+  font-size: 13px;
+  opacity: 0.45;
+  margin-top: 8px;
+}
+
+/* ---- Quick Capture ------------------------------------------------------ */
+
+.qc-add { margin: 6px 6px 2px 6px; }
+.qc-tabs { margin: 2px 6px; }
+.qc-card { padding: 6px 8px; border-radius: 8px; margin: 2px 4px; }
+.qc-card-title { font-weight: 600; }
+.qc-card-preview { opacity: 0.75; }
+.qc-card-time { opacity: 0.55; font-size: 0.85em; }
+.qc-thumb { border-radius: 6px; margin-top: 2px; }
+.qc-star { padding: 2px; }
+.qc-empty-title { font-weight: 600; opacity: 0.7; margin-top: 24px; }
+.qc-empty-text { opacity: 0.55; }
+.qc-footer { padding: 4px 8px; }
+.qc-back { margin: 6px 6px 0 6px; }
+.qc-detail-title { font-weight: 600; }
+.qc-readonly { opacity: 0.6; font-style: italic; }
+
+.qc-paper { background: alpha(#F4EEE2, 0.55); }
+.qc-paper-yellow { background: alpha(#FFD96A, 0.45); }
+.qc-paper-rose { background: alpha(#F2A7B8, 0.40); }
+.qc-paper-mint { background: alpha(#A8D8B5, 0.40); }
+.qc-paper-blue { background: alpha(#A9C7E8, 0.40); }
+
+.qc-swatch-paper { background: #F4EEE2; border-radius: 3px; }
+.qc-swatch-stickyyellow { background: #FFD96A; border-radius: 3px; }
+.qc-swatch-rose { background: #F2A7B8; border-radius: 3px; }
+.qc-swatch-mint { background: #A8D8B5; border-radius: 3px; }
+.qc-swatch-mistblue { background: #A9C7E8; border-radius: 3px; }
+
+/* ---- Glance ---------------------------------------------------------------- */
+
+.glance-foreground { padding: 12px; }
+.glance-editorial .glance-time, .glance-editorial .glance-date, .glance-editorial .glance-weekday {
+    text-align: start;
+}
+.glance-time {
+    color: #FFFFFF;
+    font-weight: 300;
+    font-size: 56px;
+    letter-spacing: 2px;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.55);
+}
+.glance-date {
+    color: rgba(255,255,255,0.92);
+    font-size: 15px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.glance-weekday {
+    color: rgba(255,255,255,0.75);
+    font-size: 12.5px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.glance-scrim { background: rgba(0,0,0,1); }
+.glance-status {
+    color: rgba(255,255,255,0.85);
+    font-size: 12px;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.glance-controls {
+    background: rgba(20,20,20,0.55);
+    border-radius: 16px;
+    padding: 3px;
+}
+.glance-controls > button {
+    background: transparent;
+    border-radius: 12px;
+    min-width: 26px;
+    min-height: 26px;
+    padding: 2px 6px;
+    color: #FFFFFF;
+}
+.glance-controls > button:hover { background: rgba(255,255,255,0.18); }
+.glance-gear {
+    background: rgba(20,20,20,0.45);
+    border-radius: 14px;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 1px 5px;
+    color: #FFFFFF;
+}
+.glance-calendar-panel {
+    background: rgba(18,18,20,0.42);
+    border-radius: 12px;
+    padding: 8px 10px;
+}
+.glance-month-title { color: #FFFFFF; font-size: 13px; font-weight: 600; }
+.glance-nav {
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    padding: 0 4px;
+}
+.glance-traditional-title { color: rgba(255,255,255,0.8); font-size: 11.5px; }
+.glance-weekday-header {
+    color: rgba(255,255,255,0.55);
+    font-size: 10.5px;
+    font-weight: 600;
+}
+.glance-day-cell { border-radius: 6px; padding: 1px 0; }
+.glance-day-number { color: #FFFFFF; font-size: 12px; }
+.glance-day-dim .glance-day-number { color: rgba(255,255,255,0.35); }
+.glance-day-today {
+    background: rgba(255,255,255,0.22);
+    border-radius: 6px;
+}
+.glance-day-today .glance-day-number { font-weight: 700; }
+.glance-day-secondary {
+    color: rgba(255,255,255,0.62);
+    font-size: 9px;
+}
+.glance-day-festival { color: #FFD08A; }
+.glance-menu { padding: 8px; margin: 0; }
+.glance-menu-section {
+    font-weight: 700;
+    font-size: 12px;
+    opacity: 0.85;
+    padding-top: 4px;
+}
+.glance-menu-caption { font-size: 11.5px; opacity: 0.75; }
+.glance-menu-action { padding: 2px 4px; }
+
+/* ── Weather widget ─────────────────────────────────────────────────────── */
+
+.weather-mini { padding: 10px 7px; }
+.weather-compact { padding: 11px 8px; }
+.weather-expanded { padding: 14px 9px; }
+
+.weather-rich-backdrop { border-radius: 10px; }
+
+.weather-icon-btn {
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: alpha(currentColor, 0.75);
+}
+.weather-icon-btn-sm { min-width: 20px; min-height: 20px; font-size: 10px; }
+
+@keyframes weather-spin-kf {
+  from { transform: rotate(0turn); }
+  to { transform: rotate(1turn); }
+}
+.weather-spin { animation: weather-spin-kf 0.8s linear infinite; }
+
+.weather-warn { color: #E0A000; font-size: 10px; }
+
+.weather-metric-band {
+  border-top: 1px solid alpha(currentColor, 0.12);
+  padding: 7px 0 2px;
+  min-height: 48px;
+}
+.weather-metric-band-expanded {
+  border-bottom: 1px solid alpha(currentColor, 0.12);
+  padding: 5px 0;
+}
+
+.weather-segmented button.toggle { padding: 1px 8px 3px; border-radius: 6px; }
+
+.weather-divider { background: alpha(currentColor, 0.10); min-height: 1px; margin: 6px 0 0; }
+
+.weather-hour-card { padding: 5px 6px 0; }
+.weather-hour-current {
+  min-width: 18px;
+  min-height: 2px;
+  border-radius: 1px;
+  background: @accent_color;
+  margin-top: 5px;
+}
+
+.weather-week-section { border-top: 1px solid alpha(currentColor, 0.12); padding-top: 2px; }
+.weather-week-row { border-bottom: 1px solid alpha(currentColor, 0.08); padding: 5px 4px; }
+
+.weather-bar-track { border-radius: 2px; background: alpha(currentColor, 0.14); }
+.weather-bar-fill {
+  border-radius: 2px;
+  background: linear-gradient(to right, #6EA9D7, #F1B36B);
+}
+
+.weather-sunrise-row { min-height: 32px; margin: 0 5px; }
+
+.weather-toast {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: alpha(currentColor, 0.08);
+  border: 1px solid alpha(currentColor, 0.14);
+}
+.weather-loading { padding: 12px; border-radius: 10px; background: alpha(black, 0.06); }
+
+/* Palette: standard skin (light theme) */
+.weather-accent { color: #1F6FAD; }
+.weather-daylight { color: #A85F00; }
+/* Palette: standard skin (dark theme) */
+.weather-dark-app .weather-accent { color: #6CB8F0; }
+.weather-dark-app .weather-daylight { color: #F2BC66; }
+/* Palette: rich skin overrides both (UpdateWeatherPalette) */
+.weather-rich-on .weather-accent { color: #8BD3FF; }
+.weather-rich-on .weather-daylight { color: #FFD08A; }
+.weather-rich-on.weather-rich-dark .weather-accent { color: #165A8C; }
+.weather-rich-on.weather-rich-dark .weather-daylight { color: #8A4F00; }
+
+/* Rich skin with light text: white foreground hierarchy */
+.weather-rich-light label { color: rgba(255, 255, 255, 0.95); }
+.weather-rich-light .weather-warn { color: #FFD08A; }
+
+/* ── Music widget ─────────────────────────────────────────────────────── */
+
+.music-surface { border-radius: 10px; }
+.music-backdrop { background: transparent; }
+
+.music-title {
+  font-weight: 600;
+  font-size: 12.5pt;
+}
+.music-title-small { font-size: 10pt; }
+.music-artist { opacity: 0.72; font-size: 10.5pt; }
+.music-status { opacity: 0.60; font-size: 9pt; }
+
+.music-btn {
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  font-size: 13px;
+}
+.music-btn:hover { background: alpha(currentColor, 0.10); }
+.music-btn-large { min-width: 32px; min-height: 32px; font-size: 16px; }
+.music-mode, .music-volume { opacity: 0.74; }  /* PlaybackModeGlyphs opacity */
+.music-playpause { font-size: 15px; }
+
+.music-art {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px alpha(black, 0.25);
+}
+/* Cover hover motion (musicEnableCoverHoverMotion): scale 1.018, lift 3px. */
+.music-art { transition: 120ms ease; }
+.music-art:hover { transform: translate(0, -3px) scale(1.018); }
+
+.music-mini-panel {
+  padding: 6px 8px;
+  border-radius: 8px 8px 8px 8px;
+  background: alpha(black, 0.28);
+}
+.music-mini-panel .music-title { font-size: 10.5pt; }
+
+.music-progress { min-height: 4px; }
+.music-progress trough { min-height: 4px; border-radius: 2px; }
+.music-progress slider {
+  min-width: 0;
+  min-height: 0;
+  margin: -5px;
+  border-radius: 999px;
+  background: @theme_fg_color;
+  opacity: 0;
+  transition: 100ms ease;
+}
+.music-progress:hover slider, .music-progress:active slider { opacity: 1; min-width: 12px; min-height: 12px; }
+.music-progress highlight { border-radius: 2px; }
+.music-progress-text { opacity: 0.62; font-size: 9.5px; }
+
+.music-volume-scale trough { min-height: 4px; border-radius: 2px; }
+.music-volume-scale slider { min-width: 12px; min-height: 12px; border-radius: 999px; }
+.music-volume-title { opacity: 0.70; font-size: 9.5px; }
+.music-volume-text { opacity: 0.62; font-size: 9.5px; }
+.music-volume-unavailable { opacity: 0.55; font-size: 9.5px; }
+
+.music-source {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  opacity: 0.78;
+}
+.music-source:hover { background: alpha(currentColor, 0.10); opacity: 1; }
+
+/* ---- Search popup ------------------------------------------------------------ */
+
+#search-popup {
+  border-radius: 14px;
+  background: @theme_bg_color;
+}
+.search-popup-root { padding: 10px 12px 8px; }
+.search-entry-row { margin-bottom: 6px; }
+.search-glyph { font-size: 14pt; opacity: 0.7; }
+.search-entry {
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12pt;
+}
+.search-entry:focus { border: 1px solid @theme_selected_bg_color; }
+
+.search-tab-row { margin: 2px 0 6px; }
+.search-tab {
+  border-radius: 8px;
+  padding: 3px 10px;
+  font-size: 10pt;
+}
+.search-tab:checked { background: alpha(@theme_selected_bg_color, 0.85); }
+
+.search-sort-row { margin-bottom: 4px; }
+.search-sort-button { padding: 2px 8px; font-size: 9pt; }
+.search-status { font-size: 9pt; }
+
+.search-filter-row { margin-bottom: 6px; }
+.search-filter { font-size: 9.5pt; }
+
+.search-results > row {
+  border-radius: 8px;
+  padding: 5px 6px;
+  margin: 1px 0;
+}
+.search-results > row:hover { background: alpha(currentColor, 0.06); }
+.search-results > row:selected { background: alpha(@theme_selected_bg_color, 0.55); }
+.search-row-glyph { font-size: 12pt; }
+.search-row-title { font-size: 11pt; }
+.search-row-subtitle { font-size: 9.5px; }
+.search-row-type, .search-row-size, .search-row-date { font-size: 9.5px; }
+
+.search-empty { padding: 18px 8px; }
+.search-empty-title { font-size: 12pt; font-weight: 600; }
+.search-section-title {
+  font-size: 9pt;
+  font-weight: 600;
+  opacity: 0.65;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.search-app-card { padding: 6px; border-radius: 10px; }
+.search-app-card:hover { background: alpha(currentColor, 0.06); }
+.search-app-icon { font-size: 16pt; }
+.search-app-name { font-size: 9.5px; }
+.search-chip {
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 9.5pt;
+}
+.search-footer { padding: 6px 0 0; }
+.search-history-toggle { font-size: 9.5pt; }
+
+/* ---- Search widget surface ---------------------------------------------------- */
+
+.search-widget { padding: 8px; }
+.search-launcher {
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: alpha(currentColor, 0.05);
+}
+.search-launcher:hover { background: alpha(currentColor, 0.10); }
+.search-launcher-glyph { font-size: 13pt; opacity: 0.75; }
+.search-launcher-text { font-size: 10.5pt; }
+.search-hotkey-badge {
+  font-size: 8.5pt;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: alpha(currentColor, 0.10);
+  opacity: 0.72;
+}
+.search-history { margin-top: 2px; }
+.search-history-list > row {
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+.search-history-list > row:hover { background: alpha(currentColor, 0.06); }
+.search-history-glyph { font-size: 10pt; opacity: 0.6; }
+.search-history-remove { padding: 0 5px; font-size: 8.5pt; opacity: 0.55; }
+.search-history-remove:hover { opacity: 1; }
+.search-history-empty { font-size: 9.5px; }
+
+/* ---- capsule (collapsed widget) ---- */
+.capsule {
+  border-radius: 8px;
+  padding: 4px 12px;
+  min-height: 34px;
+}
+.capsule-smart { border-radius: 12px; }
+.capsule-glyph { font-size: 16px; }
+.capsule-title { font-weight: 600; font-size: 11.5px; }
+.capsule-summary { font-size: 10.5px; }
+
+/* Widget group tab strip */
+.group-tabs { padding: 2px 6px; }
+.group-tab { padding: 1px 8px; border-radius: 6px; }
+.group-position { padding: 0 8px; font-size: 10.5px; opacity: 0.7; }
+
+/* ---- file stacks ---- */
+
+.stack-tile {
+  border-radius: 8px;
+}
+
+.stack-tile-icon {
+  opacity: 0.95;
+}
+
+.stack-tile-expanded {
+  background: alpha(@theme_fg_color, 0.08);
+}
+
+.stack-count-badge {
+  background: @theme_bg_color;
+  border-radius: 8px;
+  padding: 0 5px;
+  font-size: 10px;
+  border: 1px solid alpha(@theme_fg_color, 0.25);
+}
+
+.stack-child {
+  opacity: 0.85;
+}
+
+.stack-popover {
+  padding: 10px;
+}
+
+.stack-popover-title {
+  font-weight: 600;
+}
+
+.stack-popover-count {
+  opacity: 0.7;
+  font-size: 11px;
+}
