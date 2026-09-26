@@ -7,7 +7,7 @@ import shutil
 from pathlib import Path
 
 APP_NAME = "PaneBox"
-APP_VERSION = "0.4.0"  # Linux port version; stamped into backup manifests
+APP_VERSION = "0.4.1"  # Linux port version; stamped into backup manifests
 
 # Overridable for tests / portable use. The DESKBOX_* names still work as
 # legacy aliases from the pre-rename builds.
