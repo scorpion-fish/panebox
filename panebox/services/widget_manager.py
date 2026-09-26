@@ -306,6 +306,7 @@ class WidgetManager(WidgetManagerGroupsMixin):
         if present:
             window.present()
         self.runtimes[config.id] = runtime
+        self._apply_appearance_to(runtime)  # uniform opacity/density from creation on
         # Collapse availability follows the resolved behavior; a collapsed
         # config restores collapsed unless the behavior now forbids it.
         behavior = self.collapse_behavior_for(config)
@@ -960,8 +961,12 @@ class WidgetManager(WidgetManagerGroupsMixin):
 
     # ---- appearance ------------------------------------------------------------
 
-    def apply_appearance(self) -> None:
-        """Push shell appearance settings to every live widget (Settings changes)."""
+    def _apply_appearance_to(self, runtime: WidgetRuntime) -> None:
+        """Push shell appearance settings to one runtime (opacity, density,
+        extensions, icon size). Runs for every newly created widget so a
+        window created at runtime matches the boot-restored ones — otherwise
+        widgets minted after a settings change render at the default opacity
+        while the restored ones keep the configured (possibly dimmed) value."""
         shell = self.settings.settings.widgetShell
         fw = self.settings.settings.fileWidget
         density = (
@@ -969,24 +974,28 @@ class WidgetManager(WidgetManagerGroupsMixin):
             if shell.layoutDensity in ("compact", "relaxed", "standard")
             else shell.layoutDensity.lower()
         )
+        try:
+            runtime.window.set_opacity(min(1.0, max(0.10, shell.widgetOpacity)))
+        except Exception:
+            pass
+        for css in ("density-compact", "density-relaxed"):
+            if density == css.split("-")[1]:
+                runtime.shell.add_css_class(css)
+            else:
+                runtime.shell.remove_css_class(css)
+        if runtime.controller is not None:
+            runtime.controller.show_file_extensions = fw.showFileExtensions
+            runtime.controller.invalidate_stack_projection()
+        surface = runtime.surface
+        if hasattr(surface, "icon_size"):
+            surface.icon_size = int(shell.iconSize)
+        if hasattr(surface, "queue_rebuild"):
+            surface.queue_rebuild()
+
+    def apply_appearance(self) -> None:
+        """Push shell appearance settings to every live widget (Settings changes)."""
         for runtime in self.runtimes.values():
-            try:
-                runtime.window.set_opacity(min(1.0, max(0.10, shell.widgetOpacity)))
-            except Exception:
-                pass
-            for css in ("density-compact", "density-relaxed"):
-                if density == css.split("-")[1]:
-                    runtime.shell.add_css_class(css)
-                else:
-                    runtime.shell.remove_css_class(css)
-            if runtime.controller is not None:
-                runtime.controller.show_file_extensions = fw.showFileExtensions
-                runtime.controller.invalidate_stack_projection()
-            surface = runtime.surface
-            if hasattr(surface, "icon_size"):
-                surface.icon_size = int(shell.iconSize)
-            if hasattr(surface, "queue_rebuild"):
-                surface.queue_rebuild()
+            self._apply_appearance_to(runtime)
 
     # ---- first-run ----------------------------------------------------------------
 
