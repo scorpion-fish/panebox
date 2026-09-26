@@ -227,7 +227,17 @@ class SettingsWindow(Gtk.ApplicationWindow):
                 break
 
     def _on_close_request(self, *_a) -> bool:
-        self.settings_service.flush_pending_save()
+        # A failed save must never block closing the window.
+        try:
+            self.settings_service.flush_pending_save()
+        except Exception:
+            pass
+        # Drop the application's reference: a later open must build a fresh
+        # window, not present() this destroyed one (a zombie that shows
+        # nothing and ignores its close button).
+        app = self.get_application()
+        if app is not None and getattr(app, "settings_window", None) is self:
+            app.settings_window = None
         return False
 
     # ---- row helpers -----------------------------------------------------------------
