@@ -55,12 +55,21 @@ from panebox.views.weather_widget import WeatherSurface  # noqa: E402
 
 def _fake_fetch(url: str) -> dict:
     if "open-meteo.com/v1/forecast" in url:
+        # Dates are generated at call time: the surface trims hourly rows
+        # before "now" and marks the current one, so a hardcoded date turns
+        # the whole fixture stale the next day.
+        from datetime import timedelta
+
+        now = datetime.now()
+        today = now.strftime("%Y-%m-%d")
+        tomorrow = (now + timedelta(days=1)).strftime("%Y-%m-%d")
+        day_after = (now + timedelta(days=2)).strftime("%Y-%m-%d")
         return {
             "latitude": 39.9,
             "longitude": 116.4,
             "timezone": "Asia/Shanghai",
             "current": {
-                "time": "2026-09-26T10:00",
+                "time": f"{today}T{now.hour:02d}:00",
                 "temperature_2m": 21.6,
                 "relative_humidity_2m": 55,
                 "apparent_temperature": 20.1,
@@ -71,19 +80,19 @@ def _fake_fetch(url: str) -> dict:
                 "is_day": 1,
             },
             "hourly": {
-                "time": [f"2026-09-26T{h:02d}:00" for h in range(24)],
+                "time": [f"{today}T{h:02d}:00" for h in range(24)],
                 "temperature_2m": [20 + h / 10 for h in range(24)],
                 "precipitation_probability": [60 - h for h in range(24)],
                 "weather_code": [61 if h < 3 else (2 if h < 8 else 0) for h in range(24)],
             },
             "daily": {
-                "time": ["2026-09-26", "2026-09-27", "2026-09-28"],
+                "time": [today, tomorrow, day_after],
                 "weather_code": [1, 61, 71],
                 "temperature_2m_max": [26, 20, 16],
                 "temperature_2m_min": [14, 12, 9],
                 "precipitation_probability_max": [0, 70, 40],
-                "sunrise": ["2026-09-26T06:02"],
-                "sunset": ["2026-09-26T18:07"],
+                "sunrise": [f"{today}T06:02"],
+                "sunset": [f"{today}T18:07"],
                 "uv_index_max": [5.0, 2.0, 1.0],
             },
         }

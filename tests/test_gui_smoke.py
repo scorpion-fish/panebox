@@ -39,6 +39,10 @@ class App:
     """Subprocess wrapper: stderr drains on a thread so polls never block."""
 
     def __init__(self, config_root: Path, data_root: Path):
+        # Redirect HOME too: the managed storage root defaults to ~/PaneBox,
+        # and a real-HOME run would mint/adopt folders in the user's home.
+        home = data_root / "home"
+        home.mkdir(exist_ok=True)
         env = dict(
             os.environ,
             DISPLAY=SMOKE_DISPLAY,
@@ -48,6 +52,7 @@ class App:
             PANEBOX_TEST_MARKERS="1",
             PANEBOX_CONFIG_ROOT=str(config_root),
             PANEBOX_DATA_ROOT=str(data_root),
+            HOME=str(home),
         )
         self.process = subprocess.Popen(
             ["python3", str(ROOT / "main.py")],
@@ -107,7 +112,9 @@ def test_boot_ewmh_shutdown_roundtrip(tmp_path):
         assert "Traceback" not in app.log
 
         marker_line = next(line for line in app.lines if "DESKBOX-XID" in line)
-        xid = marker_line.split()[3]  # "DESKBOX-XID <title words...> <hex-xid>"
+        # "DESKBOX-XID <title words...> <hex-xid>" — the title may hold any
+        # number of words (我的桌面 is one), so anchor on the last field.
+        xid = marker_line.split()[-1]
         props = subprocess.run(
             [
                 "xprop",
