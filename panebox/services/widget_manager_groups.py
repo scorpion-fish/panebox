@@ -526,7 +526,7 @@ class WidgetManagerGroupsMixin:
         import gi
 
         gi.require_version("Gtk", "4.0")
-        from gi.repository import Gio, Gtk
+        from gi.repository import Gio, GLib, Gtk
 
         group = self.group_of(widget_id)
         targets = self.join_targets(widget_id)
@@ -542,6 +542,21 @@ class WidgetManagerGroupsMixin:
             action = Gio.SimpleAction.new(name, None)
             action.connect("activate", lambda *_a: callback())
             action_group.add_action(action)
+
+        # Per-widget section first: rename is about THIS window (the title
+        # bar is also double-click-to-edit, but that alone is undiscoverable).
+        if runtime is not None:
+            widget_section = Gio.Menu.new()
+            widget_section.append(i18n.t("Common.Rename"), "wg.rename")
+
+            def start_rename(rt=runtime) -> bool:
+                rt.shell.begin_title_edit()
+                return False
+
+            # Let the popover finish unmapping first — its focus restore on
+            # close would immediately trigger the entry's focus-leave commit.
+            add_action("rename", lambda: GLib.timeout_add(150, start_rename))
+            menu.append_section(runtime.config.name, widget_section)
 
         app_section = Gio.Menu.new()
         app_section.append(i18n.t("Common.NewWidget"), "wg.app-new-widget")

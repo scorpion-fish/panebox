@@ -208,7 +208,7 @@ class _StubManager(WidgetManagerGroupsMixin):
         self.shell_stub = _ShellStub()
         self.runtimes = {
             "w1": SimpleNamespace(
-                config=SimpleNamespace(id="w1"),
+                config=SimpleNamespace(id="w1", name="Widget"),
                 shell=self.shell_stub,
             )
         }
@@ -219,8 +219,8 @@ class _StubManager(WidgetManagerGroupsMixin):
     def join_targets(self, _widget_id):
         return []
 
-    def _member_runtime(self, _widget_id):
-        return SimpleNamespace(shell=self.shell_stub)
+    def _member_runtime(self, widget_id):
+        return self.runtimes[widget_id]
 
 
 def test_ungrouped_widget_keeps_menu_button_visible():
