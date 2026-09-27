@@ -66,13 +66,13 @@ stop it first.
 (icons are generated with PIL; the AppImage type-2 runtime is taken from an
 existing AppImage, default `~/Downloads/Joplin-3.6.14.AppImage`):
 
-- `panebox_<ver>_all.deb` — `sudo apt install ./panebox_0.4.1_all.deb`
+- `panebox_<ver>_all.deb` — `sudo apt install ./panebox_0.4.2_all.deb`
   (Depends pulls python3-gi, gir1.2-gtk-4.0 and friends)
-- `PaneBox-<ver>-x86_64.AppImage` — `./PaneBox-0.4.1-x86_64.AppImage`;
+- `PaneBox-<ver>-x86_64.AppImage` — `./PaneBox-0.4.2-x86_64.AppImage`;
   the payload is interpreted, so the host needs the same system GTK/PyGObject
   packages (AppRun prints the install line when PyGObject is missing)
 - `panebox_<ver>_amd64.snap` — classic confinement against system packages:
-  `sudo snap install --dangerous --classic ./panebox_0.4.1_amd64.snap`
+  `sudo snap install --dangerous --classic ./panebox_0.4.2_amd64.snap`
 
 ## Status
 
