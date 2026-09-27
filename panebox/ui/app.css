@@ -390,9 +390,8 @@
 /* ---- Glance ---------------------------------------------------------------- */
 
 .glance-foreground { padding: 12px; }
-.glance-editorial .glance-time, .glance-editorial .glance-date, .glance-editorial .glance-weekday {
-    text-align: start;
-}
+/* Editorial alignment is set in code (glance_widget.py set_halign) — GTK CSS
+   has no text-align property, and this rule only produced a parser warning. */
 .glance-time {
     color: #FFFFFF;
     font-weight: 300;

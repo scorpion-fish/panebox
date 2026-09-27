@@ -54,6 +54,9 @@ class App:
             PANEBOX_DATA_ROOT=str(data_root),
             HOME=str(home),
         )
+        # A live instance on the user's session bus owns org.panebox.PaneBox;
+        # without a bus the app registers locally and never forwards to it.
+        env.pop("DBUS_SESSION_BUS_ADDRESS", None)
         self.process = subprocess.Popen(
             ["python3", str(ROOT / "main.py")],
             cwd=ROOT,

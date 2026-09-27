@@ -39,7 +39,7 @@ def test_is_remote_version_newer_compares_numerically():
 # ---- service ----------------------------------------------------------------------------
 
 
-def _manifest(version="1.5.5", summary="Fixes and polish.", notes="https://panebox.fun/notes"):
+def _manifest(version="1.5.5", summary="Fixes and polish.", notes="https://example.com/notes"):
     return json.dumps({"version": version, "summary": {"en-US": summary}, "releaseNotesUrl": notes})
 
 
@@ -47,51 +47,53 @@ def _release(tag="v2.0.0"):
     return json.dumps({"tag_name": tag, "body": "Release body", "html_url": "https://github.com/r/v"})
 
 
-def test_manifest_update_available_wins_without_github_call():
+def test_release_update_available_without_manifest_call():
     calls: list[str] = []
 
     def fetch(url):
         calls.append(url)
-        return 200, _manifest()
+        return 200, _release()
 
     service = UpdateCheckService(current_version="0.3.0", fetch=fetch)
     result = service.check()
     assert result.status == UpdateCheckStatus.UPDATE_AVAILABLE
     assert result.is_update_available
-    assert result.remote_version == "1.5.5"
-    assert result.summary == "Fixes and polish."
-    assert result.release_notes_url == "https://panebox.fun/notes"
-    assert calls == [service.manifest_url]  # GitHub never consulted
+    assert result.remote_version == "v2.0.0"  # tag_name verbatim, as on Windows
+    assert result.summary == "Release body"
+    assert result.release_notes_url == "https://github.com/r/v"
+    assert service.manifest_url == ""  # nothing configured — never fetched
+    assert calls == [service.github_api_url]
     assert service.last_check_result is result
     assert service.last_check_time_utc is not None
 
 
-def test_manifest_up_to_date_short_circuits():
-    service = UpdateCheckService(current_version="1.5.5", fetch=lambda _u: (200, _manifest("1.5.5")))
+def test_release_up_to_date_short_circuits():
+    service = UpdateCheckService(current_version="2.0.0", fetch=lambda _u: (200, _release("v2.0.0")))
     result = service.check()
     assert result.status == UpdateCheckStatus.UP_TO_DATE
     assert not result.is_update_available
 
 
-def test_manifest_http_error_falls_back_to_github_release():
+def test_release_http_error_falls_back_to_custom_manifest():
     def fetch(url):
-        if url.endswith("stable.json"):
+        if "api.github.com" in url:
             return 500, "server exploded"
-        return 200, _release("v2.0.0")
+        return 200, _manifest()
 
-    service = UpdateCheckService(current_version="0.3.0", fetch=fetch)
+    service = UpdateCheckService(current_version="0.3.0", manifest_url="https://example.com/stable.json", fetch=fetch)
     result = service.check()
     assert result.status == UpdateCheckStatus.UPDATE_AVAILABLE
-    assert result.remote_version == "v2.0.0"  # tag_name verbatim, as on Windows
+    assert result.remote_version == "1.5.5"
+    assert result.release_notes_url == "https://example.com/notes"
 
 
-def test_unparseable_bodies_everywhere_report_first_failure():
+def test_unparseable_bodies_report_first_failure():
     def fetch(_url):
         return 200, "not json at all"
 
     service = UpdateCheckService(current_version="0.3.0", fetch=fetch)
     result = service.check()
-    # JSON decode exceptions map to Failed; the manifest verdict wins.
+    # JSON decode exceptions map to Failed; the GitHub verdict (first) is kept.
     assert result.status == UpdateCheckStatus.FAILED
     assert not result.is_update_available
 
@@ -106,22 +108,23 @@ def test_network_exception_is_failed_not_crash():
     assert "dns" in result.error
 
 
-def test_manifest_without_usable_version_falls_back():
+def test_release_without_usable_version_falls_back_to_manifest():
     seen: list[str] = []
 
     def fetch(url):
         seen.append(url)
-        if url.endswith("stable.json"):
-            return 200, json.dumps({"version": "tomorrow"})
-        return 200, _release("0.3.0")  # GitHub not newer either
+        if "api.github.com" in url:
+            return 200, json.dumps({"message": "Not Found"})  # no tag_name
+        return 200, _manifest("1.5.5")
 
-    service = UpdateCheckService(current_version="0.3.0", fetch=fetch)
+    service = UpdateCheckService(current_version="0.3.0", manifest_url="https://example.com/stable.json", fetch=fetch)
     result = service.check()
-    assert result.status == UpdateCheckStatus.UP_TO_DATE  # GitHub verdict wins
+    assert result.status == UpdateCheckStatus.UPDATE_AVAILABLE  # manifest verdict wins
+    assert result.remote_version == "1.5.5"
     assert set(seen) == {service.manifest_url, service.github_api_url}
 
 
 def test_checked_at_stamp_present_on_every_result():
-    service = UpdateCheckService(current_version="0.3.0", fetch=lambda _u: (200, _manifest()))
+    service = UpdateCheckService(current_version="0.3.0", fetch=lambda _u: (200, _release("0.3.0")))
     stamp = service.check().checked_at_utc
     assert stamp and "T" in stamp  # ISO-UTC, feeds lastUpdateCheckAt

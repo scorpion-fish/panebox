@@ -1,8 +1,9 @@
 """App update check (port of the check half of Services/AppUpdateService.cs).
 
-Checks the official manifest first, then the GitHub latest-release API,
-with the same version semantics (optional v prefix, prerelease/build
-suffixes stripped, numeric major.minor.build[.revision] compare).
+Checks the project's GitHub latest-release API, then an optional custom
+manifest endpoint, with the same version semantics (optional v prefix,
+prerelease/build suffixes stripped, numeric major.minor.build[.revision]
+compare).
 
 The Windows download/verify/install pipeline is intentionally NOT ported:
 Linux installs arrive through the distribution channel (package manager /
@@ -18,9 +19,11 @@ from typing import Callable, Optional
 
 from ..constants import APP_VERSION
 
-DEFAULT_MANIFEST_URL = "https://panebox.fun/update/stable.json"
-GITHUB_LATEST_RELEASE_API_URL = "https://api.github.com/repos/Tianyu199509/PaneBox/releases/latest"
-MANUAL_DOWNLOAD_URL = "https://panebox.fun/download"
+# The port ships without a manifest server: GitHub releases are the source
+# of truth. A deployment can still point manifest_url at its own stable.json.
+DEFAULT_MANIFEST_URL = ""
+GITHUB_LATEST_RELEASE_API_URL = "https://api.github.com/repos/scorpion-fish/panebox/releases/latest"
+MANUAL_DOWNLOAD_URL = "https://github.com/scorpion-fish/panebox/releases"
 REQUEST_TIMEOUT_SECONDS = 20
 
 
@@ -128,11 +131,11 @@ class UpdateCheckService:
         return response.status_code, response.text
 
     def check(self) -> UpdateCheckResult:
-        """Manifest first; only when it yields no verdict does GitHub run."""
-        result = self._check_endpoint(self.manifest_url, _manifest_version, "update manifest")
+        """GitHub release metadata first; an optional manifest can override."""
+        result = self._check_endpoint(self.github_api_url, _release_version, "GitHub release metadata")
         if result.status in (UpdateCheckStatus.UPDATE_AVAILABLE, UpdateCheckStatus.UP_TO_DATE):
             return self._record(result)
-        fallback = self._check_endpoint(self.github_api_url, _release_version, "GitHub release metadata")
+        fallback = self._check_endpoint(self.manifest_url, _manifest_version, "update manifest")
         if fallback.status in (UpdateCheckStatus.UPDATE_AVAILABLE, UpdateCheckStatus.UP_TO_DATE):
             return self._record(fallback)
         return self._record(result)
@@ -140,6 +143,12 @@ class UpdateCheckService:
     def _check_endpoint(self, url: str, extract, source_name: str) -> UpdateCheckResult:
         import json
 
+        if not url:
+            return UpdateCheckResult(
+                UpdateCheckStatus.INVALID_MANIFEST,
+                self.current_version,
+                error=f"No {source_name} endpoint configured.",
+            )
         try:
             status_code, body = self._fetch(url)
             if status_code < 200 or status_code >= 300:
