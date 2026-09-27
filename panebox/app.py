@@ -89,6 +89,32 @@ class PaneBoxApplication(Gtk.Application):
         self._register_actions()
         self._install_signal_handlers()
         self.hold()
+        # Closing the last window must end the process — a headless tray
+        # service left behind reads as "won't quit". Armed only after a
+        # window has existed, so a degenerate windowless startup keeps the
+        # old tray-resident behavior.
+        self.connect("window-added", self._on_window_added)
+        self.connect("window-removed", self._on_window_removed)
+
+    def _on_window_added(self, _app, _window) -> None:
+        self._window_exit_armed = True
+
+    def _on_window_removed(self, _app, _window) -> None:
+        if not getattr(self, "_window_exit_armed", False) or self.get_windows():
+            return  # more windows (incl. hidden toggle-all ones) still alive
+        manager = self.widget_manager
+        if manager is not None and manager.runtimes:
+            return  # mid multi-close: their windows are still coming down
+        # Small delay so a batch of closes settles before the verdict.
+        GLib.timeout_add(300, self._quit_when_windowless)
+
+    def _quit_when_windowless(self) -> bool:
+        manager = self.widget_manager
+        if manager is None or self.get_windows() or manager.runtimes:
+            return GLib.SOURCE_REMOVE  # shutdown already ran, or windows came back
+        self._log("[App] last window closed — exiting")
+        self.quit()
+        return GLib.SOURCE_REMOVE
 
     def _install_signal_handlers(self) -> None:
         """SIGTERM/SIGINT → graceful quit (the default handler kills without
@@ -111,10 +137,10 @@ class PaneBoxApplication(Gtk.Application):
     def _revive_on_reactivate(self) -> None:
         """Second launch while the app is resident must show something.
 
-        Closing the last widget leaves the instance alive (tray/notification),
-        so a re-run forwards activate here — without this it looks dead.
-        Widgets merely hidden (toggle-all) get raised; none left → recreate
-        the default file widget at the first-run spot.
+        The process now exits once every window is closed (see
+        _on_window_removed), so a resident instance holds live runtimes;
+        widgets merely hidden (toggle-all) get raised. The recreate branch
+        only covers the brief startup window before the first restore.
         """
         manager = self.widget_manager
         if manager is None or not self._restored:
