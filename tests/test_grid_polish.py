@@ -40,7 +40,7 @@ if GUI:
     import gi  # noqa: E402
 
     gi.require_version("Gtk", "4.0")
-    from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+    from gi.repository import GLib, Gtk  # noqa: E402
 
 from panebox.models.widget_config import WidgetConfig  # noqa: E402
 from panebox.services.file_widget_controller import FileWidgetController  # noqa: E402
@@ -100,24 +100,44 @@ def test_grid_spacing_follows_settings_and_cells_keep_natural_width(tmp_path):
     assert surface.flow.get_row_spacing() == 8
 
 
-def test_plain_click_toggles_and_double_click_keeps_selection(tmp_path):
+def test_plain_click_verdicts(tmp_path):
     surface = _surface(tmp_path, _settings(tmp_path))
-    child = next(surface._flow_children())
+    opened: list[str] = []
+    surface.controller.open = lambda e: opened.append(e.name)  # type: ignore[method-assign]
+    first, second = list(surface._flow_children())
 
-    surface.flow.select_child(child)  # what FlowBox does on press
-    surface._handle_item_click(child, 1, 0, was_selected=True)
-    assert not child.is_selected()  # second plain click: deselect
+    # Plain click on an unselected item: it becomes THE selection.
+    surface._handle_item_click(first, 1, was_selected=False)
+    assert first.is_selected() and not second.is_selected()
 
-    surface._handle_item_click(child, 2, 0, was_selected=False)
-    assert child.is_selected()  # double-click: stays selected, activation opens
+    # Click another item: selection MOVES (A1 deselects, C2 selects).
+    surface._handle_item_click(second, 1, was_selected=False)
+    assert second.is_selected() and not first.is_selected()
 
-    surface._handle_item_click(child, 1, 0, was_selected=True)
-    surface._handle_item_click(child, 1, Gdk.ModifierType.CONTROL_MASK, was_selected=True)
-    assert not child.is_selected()  # ctrl/shift clicks are left to the built-in
+    # Plain second click on the selected item: deselect.
+    surface._handle_item_click(second, 1, was_selected=True)
+    assert not second.is_selected() and not opened
+
+    # Double-click an unselected item: it is selected and opened, once.
+    surface._handle_item_click(second, 2, was_selected=False)
+    assert second.is_selected() and not first.is_selected()
+    assert opened == ["b.txt"]
+
+    # Double-click inside a multi-selection: every selected item opens.
+    opened.clear()
+    surface.flow.select_child(first)
+    surface._handle_item_click(second, 2, was_selected=True)
+    assert sorted(opened) == ["a.txt", "b.txt"]
 
 
-def test_real_click_toggles_selection(tmp_path):
-    """Real XTest clicks on :99: click selects, click again deselects."""
+def test_real_clicks_match_desktop_semantics(tmp_path):
+    """Real XTest clicks on :99, reproducing the reported bug:
+
+    select a.txt, then quickly click b.txt (cross-tile, inside the
+    double-click time — what the built-in handler misread as a double
+    click, opening the range). Expected: selection moves to b.txt, nothing
+    opens. Then a real double-click on b.txt: b.txt opens, once.
+    """
     libX11 = ctypes.CDLL("libX11.so.6")
     libXtst = ctypes.CDLL("libXtst.so.6")
     libX11.XOpenDisplay.restype = ctypes.c_void_p
@@ -127,16 +147,19 @@ def test_real_click_toggles_selection(tmp_path):
     assert xdisplay, "cannot open :99 for XTest"
 
     surface = _surface(tmp_path, _settings(tmp_path))
+    opened: list[str] = []
+    surface.controller.open = lambda e: opened.append(e.name)  # type: ignore[method-assign]
     window = Gtk.Window(visible=True)
     window.set_default_size(400, 400)
     window.set_child(surface)
     window.present()
 
-    child = next(surface._flow_children())
+    children = list(surface._flow_children())
+    first, second = children[0], children[1]
     loop = GLib.MainLoop()
     result: dict = {}
 
-    def abs_center() -> tuple[int, int]:
+    def abs_center(child) -> tuple[int, int]:
         translated = child.translate_coordinates(window, 0, 0)
         assert translated is not None, "tile not allocated"
         surface_origin = window.get_surface()  # GdkX11.X11Surface on this backend
@@ -160,47 +183,64 @@ def test_real_click_toggles_selection(tmp_path):
         cy = root_y.value + int(translated[1]) + alloc.height // 2
         return cx, cy
 
-    def fake(x: int, y: int, press: bool) -> bool:
+    def press(x: int, y: int, down: bool) -> bool:
+        # XTest presses at the CURRENT pointer position — move to the target
+        # first, or the click lands wherever the last approach-motion left it.
         libXtst.XTestFakeMotionEvent(xdisplay, -1, x, y, 0)
-        libXtst.XTestFakeButtonEvent(xdisplay, 1, press, 0)
+        libXtst.XTestFakeButtonEvent(xdisplay, 1, down, 0)
         libX11.XFlush(xdisplay)
         return False  # every scheduled callback must return False
 
-    def fake_hover(x: int, y: int) -> bool:
+    def move(x: int, y: int) -> bool:
         libXtst.XTestFakeMotionEvent(xdisplay, -1, x, y, 0)
         libX11.XFlush(xdisplay)
         return False
 
-    def phase1() -> bool:
-        result["center"] = abs_center()
+    def snapshot(key: str) -> bool:
+        result[key] = {
+            "a": first.is_selected(),
+            "b": second.is_selected(),
+            "opened": list(opened),
+        }
         return False
 
-    def phase2() -> bool:  # after first click
-        result["after_first"] = child.is_selected()
-        return False
-
-    def phase3() -> bool:  # after second click
-        result["after_second"] = child.is_selected()
+    def finish() -> bool:
         loop.quit()
         return False
 
     def run_clicks() -> bool:
-        cx, cy = result["center"]
-        GLib.timeout_add(0, lambda: fake_hover(cx - 30, cy))  # approach from the side
-        GLib.timeout_add(250, lambda: fake(cx, cy, True))
-        GLib.timeout_add(310, lambda: fake(cx, cy, False))
-        GLib.timeout_add(900, phase2)
-        GLib.timeout_add(1000, lambda: fake_hover(cx - 30, cy))
-        GLib.timeout_add(1250, lambda: fake(cx, cy, True))
-        GLib.timeout_add(1310, lambda: fake(cx, cy, False))
-        GLib.timeout_add(1900, phase3)
+        a1, a2 = abs_center(first)
+        b1, b2 = abs_center(second)
+        # single click on a.txt (press 250 / release 310)
+        GLib.timeout_add(0, lambda: move(a1 - 30, a2))
+        GLib.timeout_add(250, lambda: press(a1, a2, True))
+        GLib.timeout_add(310, lambda: press(a1, a2, False))
+        # fast cross-tile single click on b.txt 90ms later — inside the
+        # double-click window: must move the selection, NOT open anything
+        GLib.timeout_add(400, lambda: move(b1 - 30, b2))
+        GLib.timeout_add(650, lambda: press(b1, b2, True))
+        GLib.timeout_add(710, lambda: press(b1, b2, False))
+        GLib.timeout_add(1300, lambda: snapshot("after_cross_tile"))
+        # genuine double-click on b.txt
+        GLib.timeout_add(1600, lambda: press(b1, b2, True))
+        GLib.timeout_add(1660, lambda: press(b1, b2, False))
+        GLib.timeout_add(1800, lambda: press(b1, b2, True))
+        GLib.timeout_add(1860, lambda: press(b1, b2, False))
+        GLib.timeout_add(2500, lambda: snapshot("after_double"))
+        GLib.timeout_add(2600, finish)
         return False
 
-    GLib.timeout_add(300, phase1)
     GLib.timeout_add(400, run_clicks)
-    GLib.timeout_add(6000, loop.quit)
+    GLib.timeout_add(8000, loop.quit)
     loop.run()
 
     window.destroy()
-    assert result.get("after_first") is True, f"first click did not select: {result}"
-    assert result.get("after_second") is False, f"second click did not deselect: {result}"
+    cross = result.get("after_cross_tile")
+    assert cross, f"no cross-tile snapshot: {result}"
+    assert cross["b"] is True and cross["a"] is False, f"selection must move to b.txt: {cross}"
+    assert cross["opened"] == [], f"a fast cross-tile click must not open anything: {cross}"
+
+    dbl = result.get("after_double")
+    assert dbl, f"no double-click snapshot: {result}"
+    assert dbl["opened"] == ["b.txt"], f"double-click must open b.txt once: {dbl}"
+    assert dbl["b"] is True and dbl["a"] is False, f"double-click leaves b.txt selected: {dbl}"

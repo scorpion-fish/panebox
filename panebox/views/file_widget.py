@@ -156,6 +156,10 @@ class FileSurface(Gtk.Box):
         # widget width, so two icons sit far apart. Natural-width cells keep
         # desktop-like pitch at any file count.
         flow.set_min_children_per_line(1)
+        # GTK defaults this to TRUE — a plain click would activate (open).
+        # Plain-click behavior is owned by _attach_item_gestures; the
+        # built-in activation path stays available to the keyboard only.
+        flow.set_activate_on_single_click(False)
         flow.connect("child-activated", self._on_activate_flow)
         return flow
 
@@ -811,43 +815,57 @@ class FileSurface(Gtk.Box):
         )
         widget.add_controller(menu)
 
-        # Plain-click selection toggling. GtkFlowBox/GtkListBox in MULTIPLE
-        # mode select during the RELEASE dispatch — after child controllers —
-        # so the unselect verdict must land in a later idle, or the built-in
-        # handler just re-selects the child.
+        # Plain clicks belong to us, not the built-in MULTIPLE-mode handler:
+        # it counts presses across the WHOLE FlowBox, so A1-then-C2 within
+        # the double-click time reads as a double click and it activates a
+        # selected RANGE (files "opening" on a plain click). Claim the
+        # sequence at release, in capture phase, so the built-in release
+        # processing never runs; double clicks are then judged per-tile by
+        # this gesture, exactly like the system double-click standard.
         click = Gtk.GestureClick()
         click.set_button(1)
+        click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         state = {"was_selected": False}
         click.connect(
             "pressed",
             lambda _g, n, _x, _y: state.update(was_selected=n == 1 and holder.is_selected()),
         )
 
-        def on_released(_g, n, _x, _y):
-            mods = click.get_current_event_state()
-            was = state["was_selected"]
-
-            def apply() -> bool:
-                self._handle_item_click(holder, n, mods, was)
-                return False
-
-            GLib.idle_add(apply)
+        def on_released(g, n, _x, _y):
+            if g.get_current_event_state() & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK):
+                return  # ctrl/shift multi-select stays with the built-in
+            g.set_state(Gtk.EventSequenceState.CLAIMED)
+            self._handle_item_click(holder, n, state["was_selected"])
 
         click.connect("released", on_released)
         widget.add_controller(click)
 
-    def _handle_item_click(self, holder: Gtk.Widget, n_press: int, modifiers, was_selected: bool) -> None:
-        """Post-FlowBox click verdict: toggle plain single clicks, keep the
-        double-clicked item selected (child-activated/row-activated opens it)."""
-        if modifiers & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK):
-            return  # built-in ctrl/shift multi-select semantics
+    def _handle_item_click(self, holder: Gtk.Widget, n_press: int, was_selected: bool) -> None:
+        """Plain-click verdict: single click selects this item alone (or
+        deselects it when it was the selection); double click opens it — and,
+        as on the desktop, opens every selected item when this item is part
+        of a multi-selection."""
         if n_press >= 2:
-            self._set_holder_selected(holder, True)
+            selected = self.selected_entries()
+            entry = getattr(holder, "entry", None)
+            if entry is not None and len(selected) > 1 and entry in selected:
+                for item in selected:
+                    self.controller.open(item)
+                return
+            self._set_holder_selected(holder, selected=True, single=True)
+            self._activate_holder(holder)
         elif was_selected:
-            self._set_holder_selected(holder, False)
+            self._set_holder_selected(holder, selected=False)
+        else:
+            self._set_holder_selected(holder, selected=True, single=True)
 
-    def _set_holder_selected(self, holder: Gtk.Widget, selected: bool) -> None:
-        if isinstance(holder, Gtk.ListBoxRow):
+    def _set_holder_selected(self, holder: Gtk.Widget, selected: bool, single: bool = False) -> None:
+        """single: this plain click's item becomes THE selection (the previous
+        selection goes away), matching every desktop file manager."""
+        is_row = isinstance(holder, Gtk.ListBoxRow)
+        if single:
+            (self.list if is_row else self.flow).unselect_all()
+        if is_row:
             if selected:
                 self.list.select_row(holder)
             else:
@@ -857,6 +875,12 @@ class FileSurface(Gtk.Box):
                 self.flow.select_child(holder)
             else:
                 self.flow.unselect_child(holder)
+
+    def _activate_holder(self, holder: Gtk.Widget) -> None:
+        if isinstance(holder, Gtk.ListBoxRow):
+            self._on_activate_row(self.list, holder)
+        else:
+            self._on_activate_flow(self.flow, holder)
 
     def _on_item_menu(self, gesture: Gtk.GestureClick, widget: Gtk.Widget, entry: FileEntry) -> None:
         # Select the item under the cursor unless a multi-selection exists.
