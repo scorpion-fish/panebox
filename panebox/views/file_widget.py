@@ -825,18 +825,42 @@ class FileSurface(Gtk.Box):
         click = Gtk.GestureClick()
         click.set_button(1)
         click.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
-        state = {"was_selected": False}
-        click.connect(
-            "pressed",
-            lambda _g, n, _x, _y: state.update(was_selected=n == 1 and holder.is_selected()),
-        )
+        # A toggle-off click may still turn out to be the first half of a
+        # double click — committing it instantly made the icon flash
+        # unselected→selected before opening. It is deferred past the
+        # double-click window; the second press cancels it.
+        state = {"was_selected": False, "pending_deselect": 0}
+
+        def cancel_pending() -> None:
+            if state["pending_deselect"]:
+                GLib.source_remove(state["pending_deselect"])
+                state["pending_deselect"] = 0
+
+        def on_pressed(_g, n, _x, _y):
+            if n >= 2:
+                cancel_pending()
+            state["was_selected"] = n == 1 and holder.is_selected()
 
         def on_released(g, n, _x, _y):
             if g.get_current_event_state() & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK):
                 return  # ctrl/shift multi-select stays with the built-in
             g.set_state(Gtk.EventSequenceState.CLAIMED)
+            if n == 1 and state["was_selected"]:
+
+                def commit_deselect() -> bool:
+                    state["pending_deselect"] = 0
+                    if holder.get_parent() is not None:  # tile may be rebuilt away
+                        self._set_holder_selected(holder, selected=False)
+                    return GLib.SOURCE_REMOVE
+
+                cancel_pending()
+                settings = Gtk.Settings.get_default()
+                window_ms = settings.get_property("gtk-double-click-time") if settings else 400
+                state["pending_deselect"] = GLib.timeout_add(int(window_ms) + 100, commit_deselect)
+                return
             self._handle_item_click(holder, n, state["was_selected"])
 
+        click.connect("pressed", on_pressed)
         click.connect("released", on_released)
         widget.add_controller(click)
 

@@ -221,9 +221,12 @@ def test_real_clicks_match_desktop_semantics(tmp_path):
         GLib.timeout_add(650, lambda: press(b1, b2, True))
         GLib.timeout_add(710, lambda: press(b1, b2, False))
         GLib.timeout_add(1300, lambda: snapshot("after_cross_tile"))
-        # genuine double-click on b.txt
+        # genuine double-click on b.txt (already selected by the click above)
         GLib.timeout_add(1600, lambda: press(b1, b2, True))
         GLib.timeout_add(1660, lambda: press(b1, b2, False))
+        # between the two clicks: the toggle-off must NOT have fired — that
+        # unselected→selected flash is exactly the reported flicker
+        GLib.timeout_add(1750, lambda: snapshot("mid_double"))
         GLib.timeout_add(1800, lambda: press(b1, b2, True))
         GLib.timeout_add(1860, lambda: press(b1, b2, False))
         GLib.timeout_add(2500, lambda: snapshot("after_double"))
@@ -244,3 +247,7 @@ def test_real_clicks_match_desktop_semantics(tmp_path):
     assert dbl, f"no double-click snapshot: {result}"
     assert dbl["opened"] == ["b.txt"], f"double-click must open b.txt once: {dbl}"
     assert dbl["b"] is True and dbl["a"] is False, f"double-click leaves b.txt selected: {dbl}"
+
+    mid = result.get("mid_double")
+    assert mid, f"no mid-double-click snapshot: {result}"
+    assert mid["b"] is True, f"selection must not flash off between the two clicks: {mid}"
