@@ -14,7 +14,9 @@ import ctypes
 import os
 import sys
 
-os.environ.pop("DBUS_SESSION_BUS_ADDRESS", None)  # never forward to a live instance
+# A dead bus address, not a pop: GDBus falls back to $XDG_RUNTIME_DIR/bus and
+# would forward activate to the user's live instance (which then exits us).
+os.environ["DBUS_SESSION_BUS_ADDRESS"] = "unix:path=/nonexistent/panebox-test-bus"
 DISPLAY = os.environ.get("DISPLAY", ":99")
 os.environ["GDK_BACKEND"] = "x11"
 os.environ["GSK_RENDERER"] = "cairo"

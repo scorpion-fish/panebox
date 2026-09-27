@@ -54,9 +54,11 @@ class App:
             PANEBOX_DATA_ROOT=str(data_root),
             HOME=str(home),
         )
-        # A live instance on the user's session bus owns org.panebox.PaneBox;
-        # without a bus the app registers locally and never forwards to it.
-        env.pop("DBUS_SESSION_BUS_ADDRESS", None)
+        # A live instance on the user's session bus owns org.panebox.PaneBox.
+        # Popping the address is NOT enough: GDBus falls back to
+        # $XDG_RUNTIME_DIR/bus — point at a dead socket so the app registers
+        # locally and never forwards activate to the user's instance.
+        env["DBUS_SESSION_BUS_ADDRESS"] = "unix:path=/nonexistent/panebox-test-bus"
         self.process = subprocess.Popen(
             ["python3", str(ROOT / "main.py")],
             cwd=ROOT,

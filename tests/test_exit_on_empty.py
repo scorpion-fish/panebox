@@ -41,8 +41,9 @@ def test_app_exits_after_last_window_closed(tmp_path):
         PANEBOX_DATA_ROOT=str(tmp_path / "data"),
     )
     # A live instance (user's desktop) owns org.panebox.PaneBox on the session
-    # bus; without a bus the app registers locally and stays self-contained.
-    env.pop("DBUS_SESSION_BUS_ADDRESS", None)
+    # bus. Popping the address is not enough (GDBus falls back to
+    # $XDG_RUNTIME_DIR/bus) — point at a dead socket so the driver stays local.
+    env["DBUS_SESSION_BUS_ADDRESS"] = "unix:path=/nonexistent/panebox-test-bus"
     (tmp_path / "home").mkdir()
     process = subprocess.Popen(
         ["python3", "-u", str(DRIVER)],
