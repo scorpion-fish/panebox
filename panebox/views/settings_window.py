@@ -435,6 +435,31 @@ class SettingsWindow(Gtk.ApplicationWindow):
         text_spin = self._spin(shell.textSize, 8, 20, 0.5, 1, lambda v: self._change_density_field("textSize", v))
         self._row(group, t("Settings.TextSize.Title"), "", text_spin)
 
+        # Spins show PIXELS (icon size × scale); the store keeps the scale so
+        # gaps grow proportionally when the icon size changes.
+        def spacing_spin(scale: float, field: str):
+            return self._spin(
+                round(shell.iconSize * scale),
+                0,
+                48,
+                1,
+                0,
+                lambda v: self._change_density_field(field, v / max(1.0, shell.iconSize)),
+            )
+
+        self._row(
+            group,
+            t("Settings.IconSpacing.Horizontal"),
+            t("Settings.IconSpacing.Description"),
+            spacing_spin(shell.horizontalSpacingScale, "horizontalSpacingScale"),
+        )
+        self._row(
+            group,
+            t("Settings.IconSpacing.Vertical"),
+            "",
+            spacing_spin(shell.verticalSpacingScale, "verticalSpacingScale"),
+        )
+
         group = self._group(page, "Settings.Interaction.Window.Title")
         snap_switch = self._switch(shell.resizeSnapEnabled, lambda v: self._change_appearance("resizeSnapEnabled", v))
         self._row(group, t("Settings.ResizeSnap.Title"), t("Settings.ResizeSnap.Description"), snap_switch)

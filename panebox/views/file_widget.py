@@ -152,11 +152,26 @@ class FileSurface(Gtk.Box):
         flow = Gtk.FlowBox(visible=True)
         flow.set_selection_mode(Gtk.SelectionMode.MULTIPLE)
         flow.set_homogeneous(True)
-        flow.set_min_children_per_line(3)
-        flow.set_column_spacing(2)
-        flow.set_row_spacing(2)
+        # 1, not 3: with a per-line floor the cells stretch to share the full
+        # widget width, so two icons sit far apart. Natural-width cells keep
+        # desktop-like pitch at any file count.
+        flow.set_min_children_per_line(1)
         flow.connect("child-activated", self._on_activate_flow)
         return flow
+
+    def _apply_grid_spacing(self) -> None:
+        """Icon pitch from the density settings: gap = icon size × scale.
+
+        Runs on every rebuild — iconSize / spacing scales change through
+        Settings → apply_appearance → queue_rebuild, long after construction.
+        """
+        h_scale, v_scale = 0.40, 0.60  # Standard preset, when no service
+        if self.settings_service is not None:
+            shell = self.settings_service.settings.widgetShell
+            h_scale = max(0.0, shell.horizontalSpacingScale)
+            v_scale = max(0.0, shell.verticalSpacingScale)
+        self.flow.set_column_spacing(round(self.icon_size * h_scale))
+        self.flow.set_row_spacing(round(self.icon_size * v_scale))
 
     def _build_list(self) -> Gtk.ListBox:
         listbox = Gtk.ListBox(visible=True)
@@ -260,6 +275,7 @@ class FileSurface(Gtk.Box):
         GLib.idle_add(self.rebuild)
 
     def rebuild(self) -> None:
+        self._apply_grid_spacing()
         at_root = self.controller.is_at_root
         self.nav_bar.set_visible(not at_root)
         if not at_root:
@@ -794,6 +810,53 @@ class FileSurface(Gtk.Box):
             lambda g, _n, _x, _y: self._on_item_menu(g, widget, entry),
         )
         widget.add_controller(menu)
+
+        # Plain-click selection toggling. GtkFlowBox/GtkListBox in MULTIPLE
+        # mode select during the RELEASE dispatch — after child controllers —
+        # so the unselect verdict must land in a later idle, or the built-in
+        # handler just re-selects the child.
+        click = Gtk.GestureClick()
+        click.set_button(1)
+        state = {"was_selected": False}
+        click.connect(
+            "pressed",
+            lambda _g, n, _x, _y: state.update(was_selected=n == 1 and holder.is_selected()),
+        )
+
+        def on_released(_g, n, _x, _y):
+            mods = click.get_current_event_state()
+            was = state["was_selected"]
+
+            def apply() -> bool:
+                self._handle_item_click(holder, n, mods, was)
+                return False
+
+            GLib.idle_add(apply)
+
+        click.connect("released", on_released)
+        widget.add_controller(click)
+
+    def _handle_item_click(self, holder: Gtk.Widget, n_press: int, modifiers, was_selected: bool) -> None:
+        """Post-FlowBox click verdict: toggle plain single clicks, keep the
+        double-clicked item selected (child-activated/row-activated opens it)."""
+        if modifiers & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK):
+            return  # built-in ctrl/shift multi-select semantics
+        if n_press >= 2:
+            self._set_holder_selected(holder, True)
+        elif was_selected:
+            self._set_holder_selected(holder, False)
+
+    def _set_holder_selected(self, holder: Gtk.Widget, selected: bool) -> None:
+        if isinstance(holder, Gtk.ListBoxRow):
+            if selected:
+                self.list.select_row(holder)
+            else:
+                self.list.unselect_row(holder)
+        else:
+            if selected:
+                self.flow.select_child(holder)
+            else:
+                self.flow.unselect_child(holder)
 
     def _on_item_menu(self, gesture: Gtk.GestureClick, widget: Gtk.Widget, entry: FileEntry) -> None:
         # Select the item under the cursor unless a multi-selection exists.
