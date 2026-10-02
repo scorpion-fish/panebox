@@ -28,6 +28,7 @@ from ..services.file_widget_controller import (
     Confirmation,
     DropIntent,
     FileWidgetController,
+    _uri_to_path,
 )
 
 _LOG = get_logger("dnd")
@@ -80,6 +81,7 @@ class FileSurface(Gtk.Box):
         self.settings_service = settings_service  # for the empty-state drop action
         self.rename_popover: Optional[Gtk.Popover] = None
         self._stack_popover: Optional[Gtk.Popover] = None
+        self._drop_slot_child: Optional[Gtk.Widget] = None
 
         controller.on_entries_changed = self.queue_rebuild
         controller.on_config_changed = lambda _cfg: None
@@ -943,6 +945,7 @@ class FileSurface(Gtk.Box):
         target.connect("drop", self._on_drop)
         target.connect("motion", self._on_drop_motion)
         target.connect("accept", self._on_drag_enter)
+        target.connect("leave", lambda *_a: self._set_drop_slot(None))
         self.stack.add_controller(target)
 
     def _on_drag_enter(self, _target: Gtk.DropTarget, drop: Gdk.Drop) -> bool:
@@ -953,7 +956,8 @@ class FileSurface(Gtk.Box):
             _LOG.warning("[DnD] accept (unreadable: %r)", exc)
         return True
 
-    def _on_drop_motion(self, target: Gtk.DropTarget, _x: float, _y: float):
+    def _on_drop_motion(self, target: Gtk.DropTarget, x: float, y: float):
+        self._highlight_drop_slot(x, y)
         state = _current_modifiers()
         if state & Gdk.ModifierType.CONTROL_MASK and state & Gdk.ModifierType.SHIFT_MASK:
             desired = Gdk.DragAction.COPY  # shortcut intent, harmless to report copy
@@ -993,9 +997,12 @@ class FileSurface(Gtk.Box):
         return DropIntent.MOVE  # default managed drop action
 
     def _on_drop(self, _target: Gtk.DropTarget, value, x: float, y: float) -> bool:
+        self._set_drop_slot(None)
         if isinstance(value, str):
             # Internal drags deliver the uri list as a raw string.
             uris = [line for line in value.splitlines() if line.startswith("file://")]
+            if self._maybe_reorder(uris, x, y):
+                return True
         else:
             uris = _uris_from_drop_value(value)
         if not uris:
@@ -1003,6 +1010,87 @@ class FileSurface(Gtk.Box):
             return False
         self.controller.handle_drop(uris, self._drop_intent(), self._index_at(y))
         return True
+
+    # ---- internal drag reorder --------------------------------------------------------
+
+    def _maybe_reorder(self, uris: List[str], x: float, y: float) -> bool:
+        """A drag of items that ALL live in the folder being viewed is a
+        reorder, not a transfer — dropping a file onto its own folder is
+        otherwise a move-to-self no-op. Reordering persists only at the
+        widget root, so deeper folders keep the transfer behavior."""
+        if not uris or not self.controller.is_at_root:
+            return False
+        paths = [p for p in (_uri_to_path(u) for u in uris) if p]
+        if not paths:
+            return False
+        folder = os.path.realpath(self.controller.current_path)
+        if not all(os.path.exists(p) and os.path.realpath(os.path.dirname(p)) == folder for p in paths):
+            return False
+        index = self._insert_index_at(x, y)
+        if index is None:
+            return False
+        _LOG.info("[DnD] internal reorder: %d item(s) → index %d", len(paths), index)
+        return self.controller.reorder(paths, index)
+
+    def _insert_index_at(self, x: float, y: float) -> Optional[int]:
+        """Index a drop inserts at: the nearest tile by center distance;
+        landing on its right half (bottom half in the list view) inserts
+        AFTER it, else before. x/y are relative to self.stack — the widget
+        the DropTarget lives on."""
+        children, is_list = self._visible_children()
+        if not children:
+            return 0
+        nearest = self._nearest_child(children, x, y)
+        if nearest is None:
+            return 0
+        index, center = nearest
+        after = (y > center[1]) if is_list else (x > center[0])
+        return index + (1 if after else 0)
+
+    def _visible_children(self):
+        is_list = self.stack.get_visible_child_name() == ViewMode.LIST
+        children = list(self._list_rows() if is_list else self._flow_children())
+        return children, is_list
+
+    def _nearest_child(self, children, x: float, y: float):
+        """(index, center) of the child whose center is closest to (x, y)."""
+        best = None
+        for index, child in enumerate(children):
+            origin = child.translate_coordinates(self.stack, 0, 0)
+            if origin is None:
+                continue
+            alloc = child.get_allocation()
+            center = (origin[0] + alloc.width / 2, origin[1] + alloc.height / 2)
+            distance = (x - center[0]) ** 2 + (y - center[1]) ** 2
+            if best is None or distance < best[0]:
+                best = (distance, index, center)
+        if best is None:
+            return None
+        return best[1], best[2]
+
+    def _highlight_drop_slot(self, x: float, y: float) -> None:
+        """Mark the tile a drop would insert at (before/after edge accent)."""
+        children, is_list = self._visible_children()
+        nearest = self._nearest_child(children, x, y)
+        if nearest is None:
+            self._set_drop_slot(None)
+            return
+        index, center = nearest
+        after = (y > center[1]) if is_list else (x > center[0])
+        self._set_drop_slot(children[index], "drop-after" if after else "drop-before")
+
+    def _set_drop_slot(self, child: Optional[Gtk.Widget], css_class: str = "") -> None:
+        previous = self._drop_slot_child
+        if previous is not None and previous is not child:
+            previous.remove_css_class("drop-before")
+            previous.remove_css_class("drop-after")
+        if child is None:
+            self._drop_slot_child = None
+            return
+        other = "drop-after" if css_class == "drop-before" else "drop-before"
+        child.remove_css_class(other)
+        child.add_css_class(css_class)
+        self._drop_slot_child = child
 
     def _index_at(self, y: float) -> Optional[int]:
         if self.stack.get_visible_child_name() != ViewMode.ICON:

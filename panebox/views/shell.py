@@ -13,7 +13,8 @@ from typing import Callable, Optional
 import gi
 
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, GLib, Gtk  # noqa: E402
+gi.require_version("Pango", "1.0")
+from gi.repository import Gdk, GLib, Gtk, Pango  # noqa: E402
 
 from .. import i18n
 
@@ -83,6 +84,8 @@ class WidgetShell(Gtk.Box):
         self.title_bar.add_controller(hover)
 
         self._editing = False
+        self._title_font_size = 11.5
+        self._title_color = ""
         click = Gtk.GestureClick()
         click.set_button(1)
         click.connect("released", self._on_title_clicked)
@@ -124,6 +127,36 @@ class WidgetShell(Gtk.Box):
     def get_title(self) -> str:
         return self.title_label.get_text()
 
+    def set_title_style(self, font_size: float, color: str) -> None:
+        """Title bar text size/color (font_size 0 or color "" = theme default).
+
+        Pango attributes override the CSS size/color on both the label and
+        the rename entry while editing, so the title never re-renders in the
+        theme style mid-edit.
+        """
+        self._title_font_size = float(font_size)
+        self._title_color = color or ""
+        attrs = self._title_attributes()
+        self.title_label.set_attributes(attrs)
+        entry = getattr(self, "_edit_entry", None)
+        if entry is not None:
+            entry.set_attributes(attrs)
+
+    def _title_attributes(self) -> Pango.AttrList:
+        attrs = Pango.AttrList()
+        if self._title_font_size > 0:
+            attrs.insert(Pango.attr_size_new(int(self._title_font_size * Pango.SCALE)))
+        rgba = Gdk.RGBA()
+        if self._title_color and rgba.parse(self._title_color):
+            attrs.insert(
+                Pango.attr_foreground_new(
+                    int(rgba.red * 65535),
+                    int(rgba.green * 65535),
+                    int(rgba.blue * 65535),
+                )
+            )
+        return attrs
+
     def set_buttons_visible(self, visible: bool) -> None:
         self.buttons_revealer.set_reveal_child(visible)
         self.collapse_button.set_visible(visible)
@@ -163,6 +196,7 @@ class WidgetShell(Gtk.Box):
         entry.add_controller(focus_loss)
 
         self._edit_entry = entry
+        entry.set_attributes(self._title_attributes())
         box = self.title_label.get_parent()
         box.remove(self.title_label)
         box.prepend(entry)

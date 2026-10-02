@@ -108,6 +108,9 @@ class WidgetShellSettingsSlice(JsonModel):
     layoutDensityScale: float = 0.56
     horizontalSpacingScale: float = 0.40
     verticalSpacingScale: float = 0.60
+    # title bar
+    titleFontSize: float = 11.5
+    titleColor: str = ""  # "" = follow the theme
 
 
 @dataclasses.dataclass

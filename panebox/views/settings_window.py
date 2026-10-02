@@ -422,6 +422,42 @@ class SettingsWindow(Gtk.ApplicationWindow):
         )
         self._row(group, t("Settings.DefaultHeight.Title"), "", height_spin)
 
+        title_size_spin = self._spin(
+            shell.titleFontSize,
+            9,
+            24,
+            0.5,
+            1,
+            lambda v: self._change_appearance("titleFontSize", v),
+        )
+        self._row(group, t("Settings.TitleFontSize.Title"), t("Settings.TitleFontSize.Description"), title_size_spin)
+
+        # Custom color: a switch opts in ("" keeps the theme color); the
+        # dialog button edits the chosen color.
+        color_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6, visible=True)
+        use_custom_color = Gtk.Switch(visible=True)
+        use_custom_color.set_active(bool(shell.titleColor))
+        color_button = Gtk.ColorDialogButton(dialog=Gtk.ColorDialog())
+        color_button.set_visible(True)
+        initial = Gdk.RGBA()
+        if shell.titleColor and initial.parse(shell.titleColor):
+            color_button.set_rgba(initial)
+
+        def change_color(value: str) -> None:
+            self._change_appearance("titleColor", value)
+
+        use_custom_color.connect(
+            "notify::active",
+            lambda w, _p: change_color(color_button.get_rgba().to_string() if w.get_active() else ""),
+        )
+        color_button.connect(
+            "notify::rgba",
+            lambda w, _p: change_color(w.get_rgba().to_string()) if use_custom_color.get_active() else None,
+        )
+        color_box.append(use_custom_color)
+        color_box.append(color_button)
+        self._row(group, t("Settings.TitleColor.Title"), t("Settings.TitleColor.Description"), color_box)
+
         group = self._group(page, "Settings.Density.Title")
         density_drop = self._dropdown(
             [t(f"Settings.Density.{name}") for name in ("Compact", "Standard", "Relaxed", "Custom")],

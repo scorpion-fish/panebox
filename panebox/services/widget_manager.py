@@ -978,6 +978,8 @@ class WidgetManager(WidgetManagerGroupsMixin):
             runtime.window.set_opacity(min(1.0, max(0.10, shell.widgetOpacity)))
         except Exception:
             pass
+        if hasattr(runtime.shell, "set_title_style"):
+            runtime.shell.set_title_style(shell.titleFontSize, shell.titleColor)
         for css in ("density-compact", "density-relaxed"):
             if density == css.split("-")[1]:
                 runtime.shell.add_css_class(css)

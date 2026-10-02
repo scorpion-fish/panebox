@@ -548,17 +548,35 @@ class FileWidgetController:
         if self.on_entries_changed:
             self.on_entries_changed()
 
-    def reorder(self, entry: FileEntry, target_index: int) -> bool:
-        """Manual-mode reorder (drag inside the widget)."""
-        if self.config.sortMode != SortMode.MANUAL or not self.is_at_root:
+    def reorder(self, paths: List[str], target_index: int) -> bool:
+        """Drag-to-reorder inside the widget root.
+
+        The first drag switches the widget to manual sort, keeping the order
+        currently on screen as the baseline (what the user sees is what
+        shifts). The dragged paths land consecutively at target_index, in
+        their display order; everything else moves after them.
+        """
+        if not self.is_at_root or not paths:
             return False
-        if self.manual.move(entry.path, target_index):
-            self._persist_manual_order()
-            self.refresh()
-            if self.on_entries_changed:
-                self.on_entries_changed()
-            return True
-        return False
+        if self.config.sortMode != SortMode.MANUAL:
+            self.config.sortMode = SortMode.MANUAL
+            self.config.sortDescending = False
+            self.manual.paths = [e.path for e in self.entries]
+        dragged = [p for p in paths if self.manual.contains(p)]
+        if not dragged:
+            return False
+        dragged_set = set(dragged)
+        remaining = [p for p in self.manual.paths if p not in dragged_set]
+        index = max(0, min(int(target_index), len(remaining)))
+        remaining[index:index] = dragged
+        self.manual.paths = remaining
+        self._persist_manual_order()
+        self._sort()
+        self._notify_config()
+        self.refresh()
+        if self.on_entries_changed:
+            self.on_entries_changed()
+        return True
 
     # ---- stacks (WidgetViewModel.Stacks) -----------------------------------------
 
